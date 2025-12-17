@@ -1,7 +1,9 @@
 import streamlit as st
 from openai import OpenAI
+from openai.error import RateLimitError
+import time
 
-# Connect OpenAI using Streamlit secrets
+# Connect to OpenAI (API key must be in Streamlit Secrets)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.set_page_config(page_title="Chatbot Xafiiska Dakhliga")
@@ -22,37 +24,34 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Ku qor su’aashaada halkan...")
 
 if prompt:
-    # Save user message
-    st.session_state.messages.append(
-        {"role": "user", "content": prompt}
-    )
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # OpenAI response
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Waxaad tahay chatbot rasmi ah oo u shaqeeya "
-                    "Xafiiska Dakhliga Heer Degaan. "
-                    "Ku jawaab af-Soomaali, si cad, gaaban, "
-                    "oo u hoggaansan habraaca dowladeed."
-                ),
-            },
-            *st.session_state.messages,
-        ],
-    )
+    # Try-except for rate limits
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",  # free model
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Waxaad tahay chatbot rasmi ah oo u shaqeeya "
+                        "Xafiiska Dakhliga Heer Degaan. "
+                        "Ku jawaab af-Soomaali, si cad oo rasmi ah."
+                    ),
+                },
+                *st.session_state.messages,
+            ],
+        )
 
-    reply = response.choices[0].message.content
+        reply = response.choices[0].message.content
+        st.session_state.messages.append({"role": "assistant", "content": reply})
 
-    # Save assistant reply
-    st.session_state.messages.append(
-        {"role": "assistant", "content": reply}
-    )
+        with st.chat_message("assistant"):
+            st.markdown(reply)
 
-    with st.chat_message("assistant"):
-        st.markdown(reply)
+    except RateLimitError:
+        st.warning("API rate limit la gaaray. Fadlan sug 1 daqiiqo kadib isku day mar kale.")
+        time.sleep(60)
