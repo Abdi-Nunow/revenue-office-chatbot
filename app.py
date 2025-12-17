@@ -1,10 +1,10 @@
 import streamlit as st
-from gpt4all import GPT4All
+from transformers import pipeline
 
-# Initialize model (local)
-model = GPT4All("ggml-gpt4all-j-v1.3-groovy")  # download model ka GPT4All website
+# Initialize chatbot pipeline (Hugging Face)
+chatbot = pipeline("text-generation", model="tiiuae/gpt4-x-alpaca", device=-1)
 
-st.title("🤖 Chatbot Xafiiska Dakhliga – Offline/Free")
+st.title("🤖 Chatbot Xafiiska Dakhliga – Free Online")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -20,8 +20,8 @@ if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Model response
-    response = model.generate(prompt)
+    # Generate response
+    response = chatbot(prompt, max_length=200)[0]['generated_text']
     st.session_state.messages.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response)
